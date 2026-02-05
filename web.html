@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz UKK Pengetahuan - Gen Z Edition</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --correct: #10b981;
+            --correct-bg: #ecfdf5;
+            --wrong: #ef4444;
+            --wrong-bg: #fef2f2;
+            --analogy-bg: #fff7ed;
+            --analogy-border: #f97316;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card);
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-container {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: var(--primary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .code-snippet {
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .options {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-btn {
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .option-btn:hover:not([disabled]) {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .option-btn.correct {
+            border-color: var(--correct);
+            background: var(--correct-bg);
+            color: #064e3b;
+            font-weight: 600;
+        }
+        
+        .option-btn.correct::after {
+            content: "✅";
+            position: absolute;
+            right: 15px;
+        }
+
+        .option-btn.wrong {
+            border-color: var(--wrong);
+            background: var(--wrong-bg);
+            color: #7f1d1d;
+            opacity: 0.8;
+        }
+
+        .option-btn.wrong::after {
+            content: "❌";
+            position: absolute;
+            right: 15px;
+        }
+
+        .option-btn[disabled] {
+            cursor: default;
+        }
+
+        /* Feedback Section */
+        .feedback-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+            animation: fadeIn 0.4s;
+        }
+
+        .feedback-box.correct {
+            background: var(--correct-bg);
+            border: 1px solid var(--correct);
+        }
+
+        .feedback-box.wrong {
+            background: var(--wrong-bg);
+            border: 1px solid var(--wrong);
+        }
+
+        .feedback-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .analogy-box {
+            margin-top: 15px;
+            background: var(--analogy-bg);
+            border-left: 4px solid var(--analogy-border);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .analogy-title {
+            font-weight: bold;
+            color: #c2410c;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-next {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            display: none; /* Hidden until answered */
+        }
+        
+        .btn-next:hover {
+            background: var(--primary-hover);
+        }
+
+        .result-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .final-score {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 1.5rem; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="quiz-screen">
+        <h1>Ujian Kompetensi Kejuruan</h1>
+        <div style="text-align: center; color: #64748b; margin-bottom: 10px;">
+            Soal <span id="current-q">1</span> dari <span id="total-q">25</span>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+
+        <div class="question-text" id="question"></div>
+        <div id="code-area"></div>
+        
+        <div class="options" id="options"></div>
+
+        <div id="feedback" class="feedback-box">
+            <div class="feedback-title" id="feedback-title"></div>
+            <div id="feedback-text"></div>
+            <div class="analogy-box">
+                <span class="analogy-title">💡 Analogi Simpel:</span>
+                <span id="feedback-analogy"></span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-next" id="next-btn" onclick="nextQuestion()">Lanjut Soal Berikutnya 👉</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="result-screen">
+        <h2>🎉 Selesai! Hasil Kamu:</h2>
+        <div class="final-score" id="score">0</div>
+        <p id="score-msg" style="font-size: 1.2rem; color: #475569;"></p>
+        <button class="btn-next" style="display:inline-block;" onclick="location.reload()">Ulangi Quiz 🔄</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Pendekatan \"iteratif dan inkremental\" merupakan karakteristik utama dari model pengembangan...",
+            opt: ["Waterfall", "V-Model", "Spiral dan Agile", "Big Bang", "Prototype"],
+            ans: 2,
+            expl: "Spiral dan Agile memecah proyek jadi bagian kecil (inkremental) dan mengulang prosesnya (iteratif) untuk perbaikan terus-menerus.",
+            analog: "Kayak main game tapi levelnya update terus tiap bulan. Nggak langsung tamat sekali rilis, tapi dicicil update fiturnya biar makin bagus."
+        },
+        {
+            q: "Model pengembangan perangkat lunak yang menekankan pada pembuatan prototipe awal untuk mendapatkan umpan balik dari pengguna adalah...",
+            opt: ["Waterfall", "Spiral", "Agile", "RAD (Rapid Application Development)", "Big Bang"],
+            ans: 3,
+            expl: "RAD fokus bikin 'dummy' atau versi kasar aplikasi secepat mungkin biar user bisa langsung komen.",
+            analog: "Kayak lo bikin sketsa baju dulu buat diliatin ke klien sebelum dijahit beneran. Biar kalau jelek, gantinya gampang."
+        },
+        {
+            q: "Tujuan utama dari tahapan analisis kebutuhan dalam pengembangan program adalah...",
+            opt: ["Menulis kode program yang efisien.", "Merancang antarmuka pengguna yang menarik.", "Mengidentifikasi dan mendokumentasikan apa yang dibutuhkan oleh pengguna dan sistem.", "Melakukan pengujian terhadap perangkat lunak yang telah dibuat.", "Memastikan program berjalan tanpa kesalahan teknis."],
+            ans: 2,
+            expl: "Tahap ini kuncinya adalah 'mencatat maunya user' sebelum mulai kerja.",
+            analog: "Kayak pelayan restoran nyatet pesanan lo. Kalau nggak dicatet (dianalisis), bisa-bisa lo pesen nasgor dikasihnya soto."
+        },
+        {
+            q: "Metode pengembangan yang cocok untuk proyek dengan kebutuhan yang tidak terlalu jelas di awal dan memungkinkan perubahan yang sering adalah...",
+            opt: ["Waterfall", "V-Model", "Spiral", "RAD", "Big Bang"],
+            ans: 2,
+            expl: "Spiral menggabungkan iteratif dengan manajemen risiko yang kuat, cocok kalau projectnya masih abu-abu.",
+            analog: "Kayak ngerjain tugas seni budaya yang temanya 'Bebas'. Lo mulai dari coretan dikit, direvisi guru, diperbagus, gitu terus muter sampai jadi."
+        },
+        {
+            q: "Model pengembangan Spiral dianggap sebagai model yang berisiko tinggi karena...",
+            opt: ["Membutuhkan tim pengembang dengan keahlian yang sangat spesifik.", "Proses iterasi yang panjang dapat menyebabkan penundaan proyek yang signifikan.", "Penekanan yang berlebihan pada perencanaan di awal proyek.", "Membutuhkan keterlibatan intensif dari pengguna sepanjang siklus.", "Tahap analisis risiko yang komprehensif dapat memperlambat kemajuan awal proyek."],
+            ans: 4,
+            expl: "Spiral mewajibkan analisis risiko di setiap putaran. Kalau analisnya lelet, project nggak mulai-mulai.",
+            analog: "Kayak orang yang kebanyakan mikir 'gimana kalau gagal?' (overthinking) sebelum mulai usaha, akhirnya usahanya malah nggak jalan-jalan."
+        },
+        {
+            q: "Sebuah tim pengembang sedang mengerjakan proyek perangkat lunak dengan persyaratan yang sering berubah dan sulit diprediksi di awal proyek. Metode pengembangan manakah yang paling sesuai...",
+            opt: ["Waterfall", "Spiral", "Rapid Application Development (RAD)", "Agile", "Prototyping"],
+            ans: 3,
+            expl: "Agile didesain khusus buat menghadapi perubahan mendadak di tengah jalan.",
+            analog: "Kayak main bola. Strategi bisa berubah kapan aja tergantung lawan. Nggak bisa pakai satu rencana kaku dari awal sampai akhir."
+        },
+        {
+            q: "Fokus utama dari metode pengembangan Rapid Application Development (RAD) adalah...",
+            opt: ["Dokumentasi yang lengkap dan detail di setiap tahapan.", "Pengembangan yang cepat dan responsif terhadap perubahan kebutuhan.", "Pengujian yang mendalam dan menyeluruh sebelum rilis.", "Perencanaan proyek yang sangat ketat dan terstruktur.", "Pengembangan berbasis komponen yang dapat digunakan kembali."],
+            ans: 1,
+            expl: "RAD = Rapid (Cepat). Kuncinya kecepatan delivery produk.",
+            analog: "Kayak sistem 'SKS' (Sistem Kebut Semalam) tapi versi terstruktur. Yang penting tugas kelar dan bisa dikumpulin cepet."
+        },
+        {
+            q: "Manakah dari berikut ini yang merupakan tahapan paling awal dalam Siklus Hidup Pengembangan Perangkat Lunak (SDLC)...",
+            opt: ["Pengujian (Testing)", "Implementasi (Implementation)", "Perencanaan (Planning)", "Pemeliharaan (Maintenance)", "Analisis Kebutuhan (Requirements Analysis)"],
+            ans: 4,
+            expl: "Sebelum merencanakan (planning) detail teknis, kita harus tahu dulu apa yang mau dibuat (analisis kebutuhan). *Catatan: Beberapa referensi menempatkan Planning sebelum Analisis, tapi di soal ini Analisis adalah tahap paling awal yang tersedia secara logis untuk 'memahami masalah'.*",
+            analog: "Sebelum lo beli bahan bangunan (Planning) atau bangun rumah (Implementation), lo harus tau dulu mau bangun rumah model apa (Analisis)."
+        },
+        {
+            q: "Tindakan yang paling tepat untuk mencegah terjadinya cedera akibat kabel yang berantakan di lantai ruang kerja adalah...",
+            opt: ["Melompati kabel dengan hati-hati", "Membiarkannya karena tidak terlalu berbahaya", "Menutupinya dengan karpet tebal", "Merapikan dan mengamankan kabel agar tidak menjadi penghalang", "Memperingatkan orang lain untuk berhati-hati"],
+            ans: 3,
+            expl: "Cable management yang baik adalah solusi utama K3LH.",
+            analog: "Sama kayak ngerapihin kabel charger di kamar biar nggak keserimpet pas bangun tidur."
+        },
+        {
+            q: "Bahaya sosial yang mungkin timbul di lingkungan kerja komputer akibat penggunaan internet dan media sosial yang tidak bijak adalah...",
+            opt: ["Peningkatan produktivitas kerja", "Terjalinnya komunikasi yang lebih efektif antar karyawan", "Penyebaran informasi palsu (hoax) dan cyberbullying", "Meningkatnya rasa kebersamaan dan solidaritas tim", "Tidak ada dampak sosial negatif yang signifikan"],
+            ans: 2,
+            expl: "Dampak negatif sosmed di kantor meliputi hoax dan bullying digital.",
+            analog: "Kayak drama di grup WhatsApp kelas. Gosip hoax cepet nyebar dan bikin suasana jadi toxic."
+        },
+        {
+            q: "Paparan radiasi elektromagnetik dalam jangka panjang dari perangkat komputer dan jaringan nirkabel dikhawatirkan dapat menyebabkan...",
+            opt: ["Alergi kulit ringan", "Gangguan tidur dan potensi risiko kesehatan lainnya", "Peningkatan kemampuan kognitif", "Kekebalan tubuh yang meningkat", "Tidak ada dampak kesehatan yang signifikan"],
+            ans: 1,
+            expl: "Radiasi (blue light dan gelombang) bisa mengganggu ritme sirkadian (jam tidur) tubuh.",
+            analog: "Lo main HP terus sebelum tidur, akhirnya begadang dan paginya pusing. Itu efek simpelnya."
+        },
+        {
+            q: "Bahaya ergonomis paling signifikan yang mungkin timbul akibat programmer duduk berjam-jam adalah...",
+            opt: ["Iritasi mata ringan akibat paparan layar.", "Peningkatan risiko penyakit menular akibat interaksi dengan perangkat umum.", "Gangguan muskuloskeletal seperti carpal tunnel syndrome dan nyeri punggung kronis.", "Peningkatan risiko alergi debu akibat ventilasi ruangan yang kurang baik.", "Kelelahan mental sementara akibat fokus yang intens."],
+            ans: 2,
+            expl: "Posisi duduk salah dan ngetik lama bikin otot/tulang cidera (CTS/Back pain).",
+            analog: "Posisi 'udang' pas main game. Lama-lama punggung bungkuk dan tangan kram."
+        },
+        {
+            q: "Penggunaan library atau framework pihak ketiga yang tidak terpercaya dalam proyek dapat menimbulkan bahaya keamanan berupa...",
+            opt: ["Peningkatan ukuran bundle aplikasi yang signifikan.", "Ketidaksesuaian fungsionalitas dengan kebutuhan proyek.", "Adanya backdoor atau kerentanan keamanan yang dapat dieksploitasi oleh pihak jahat.", "Konflik dependensi dengan library lain dalam proyek.", "Penurunan performa aplikasi secara keseluruhan."],
+            ans: 2,
+            expl: "Library asing bisa disusupi kode jahat (malware/backdoor).",
+            analog: "Kayak lo download mod game dari web nggak jelas, eh malah dapet virus yang nyuri password akun lo."
+        },
+        {
+            q: "Tindakan yang paling efektif untuk melindungi data penting perusahaan dari akses yang tidak sah adalah...",
+            opt: ["Membiarkan komputer selalu dalam keadaan menyala", "Tidak pernah mengganti kata sandi akun pengguna", "Menyimpan semua data di satu folder tanpa pengamanan", "Memberikan kata sandi kepada semua rekan kerja untuk kemudahan akses", "Menggunakan kata sandi yang kuat dan unik serta mengaktifkan otentikasi dua faktor"],
+            ans: 4,
+            expl: "Strong Password + 2FA (Two-Factor Auth) adalah standar keamanan emas saat ini.",
+            analog: "Kayak kunci ganda motor + alarm. Maling bakal mikir dua kali buat bobol."
+        },
+        {
+            q: "Dalam proses penerjemahan seluruh source code ke dalam bahasa mesin sebelum program dijalankan secara keseluruhan dinamakan...",
+            opt: ["Assembling", "Debugging", "Compiling", "Interpreting", "Linking"],
+            ans: 2,
+            expl: "Compiling menerjemahkan SEMUA kode sekaligus jadi file executeable (.exe).",
+            analog: "Kayak nerjemahin satu buku full bahasa Inggris ke Indo dulu, baru dibaca hasilnya (Buku Terjemahan)."
+        },
+        {
+            q: "Dalam konteks eksekusi PHP, apa yang terjadi ketika sebuah script PHP diakses melalui web browser?",
+            opt: ["Browser langsung menjalankan source code PHP.", "Server mengirimkan source code PHP mentah ke browser.", "Server menjalankan source code PHP dan mengirimkan hasilnya (biasanya HTML) ke browser.", "Source code PHP dikompilasi menjadi file .exe sebelum dikirim ke browser.", "Browser meminta server untuk mengkompilasi source code PHP menjadi bytecode."],
+            ans: 2,
+            expl: "PHP itu Server-Side. Dia dimasak di dapur (Server), yang disajikan ke meja pelanggan (Browser) cuma makanannya (HTML).",
+            analog: "Lo pesen nasi goreng. Koki (Server) masak di dapur. Yang lo terima di meja (Browser) itu nasi goreng matengnya, bukan kompor sama wajannya."
+        },
+        {
+            q: "Ketika kode Java dieksekusi, langkah manakah yang pertama kali dilakukan oleh Java Virtual Machine (JVM)?",
+            code: "public class Main {\n public static void main(String[] args) {\n ... \n } \n}",
+            opt: ["Memeriksa bytecode untuk keamanan dan validitas.", "Mengubah bytecode menjadi kode mesin melalui JIT compiler atau interpreter.", "Memuat class file Main.class ke dalam memori.", "Mengalokasikan memori untuk variabel x pada stack frame dari metode main.", "Mencari dan menjalankan metode main dalam class Main."],
+            ans: 4,
+            expl: "JVM akan selalu mencari pintu masuk utama program, yaitu `public static void main`.",
+            analog: "Kayak lo masuk rumah, yang pertama dicari pasti pintu depan (Main Door). Nggak mungkin lewat jendela atau cerobong asep."
+        },
+        {
+            q: "Sebuah aplikasi web PHP dijalankan di server. Bagaimana source code PHP dieksekusi ketika ada permintaan dari client?",
+            opt: ["Source code PHP di-compile menjadi kode mesin oleh browser sebelum ditampilkan.", "Source code PHP dikirimkan langsung ke browser dan di-interpret di sisi client.", "Server menjalankan source code PHP menggunakan interpreter PHP, menghasilkan output (biasanya HTML), yang kemudian dikirimkan ke browser.", "Source code PHP di-compile menjadi bytecode oleh server dan dikirimkan ke browser untuk dieksekusi oleh PHP Virtual Machine di browser.", "Server menyimpan source code PHP dalam bentuk terkompilasi dan mengirimkannya sebagai applet ke browser."],
+            ans: 2,
+            expl: "Sama seperti soal sebelumnya, PHP dieksekusi total di server.",
+            analog: "Browser itu cuma penonton TV. Server itu stasiun TV yang bikin acara. Penonton cuma terima gambar jadi."
+        },
+        {
+            q: "Tahapan eksekusi manakah yang pertama kali terjadi setelah web server menerima permintaan (request) file PHP?",
+            opt: ["Interpretasi bytecode oleh Zend Engine.", "Pembacaan dan pemrosesan file php.ini.", "Pengiriman response HTTP oleh web server.", "Pemanggilan extension PHP yang relevan.", "Pembuatan opcode dari source code PHP."],
+            ans: 4,
+            expl: "Source code PHP harus diubah jadi Opcode dulu biar bisa dimengerti mesin PHP.",
+            analog: "Sebelum lo ngerjain soal ujian, lo harus BACA soalnya dulu (Parsing/Opcode) baru bisa mikir jawabannya."
+        },
+        {
+            q: "Mekanisme caching yang bertujuan meningkatkan kecepatan eksekusi PHP dengan menyimpan hasil kompilasi source code ke dalam opcode?",
+            opt: ["HTTP Caching", "Database Query Caching", "Opcode Caching (misalnya, OPcache)", "Object Caching", "Output Caching"],
+            ans: 2,
+            expl: "OPcache menyimpan hasil terjemahan script biar nggak perlu diterjemahin ulang tiap kali diakses.",
+            analog: "Kayak lo udah hafal jalan ke sekolah. Besok-besok nggak perlu buka Google Maps lagi (langsung jalan aja karena udah ada di otak/cache)."
+        },
+        {
+            q: "Program C setelah kompilasi berhasil untuk setiap file sumber, langkah selanjutnya untuk menghasilkan file eksekusi adalah...",
+            opt: ["Optimasi kode", "Pembuatan assembly code", "Penggabungan object code dari semua file sumber dan library (Linking)", "Pemuatan object code", "Eksekusi preprocessor"],
+            ans: 2,
+            expl: "Linking adalah proses menyambungkan semua potongan puzzle (object code) jadi satu gambar utuh (.exe).",
+            analog: "Kayak ngerakit Gundam. Tangan, kaki, kepala udah jadi (Compiled), tinggal digabungin (Linking) biar jadi robot utuh."
+        },
+        {
+            q: "Perbedaan mendasar dalam mekanisme eksekusi antara fungsi dan class method dalam PHP adalah...",
+            opt: ["Method dapat memiliki akses ke properti objek melalui $this", "Fungsi selalu dieksekusi dalam scope global", "Pemanggilan fungsi lebih cepat", "Fungsi dikompilasi terpisah", "Tidak ada perbedaan signifikan"],
+            ans: 0,
+            expl: "Method itu nempel sama Object, makanya dia punya `$this` (diri sendiri). Fungsi itu jomblo/independen.",
+            analog: "Fungsi itu kayak tukang ojek umum (bisa dipanggil siapa aja). Method itu kayak sopir pribadi (cuma kerja buat majikannya/objeknya)."
+        },
+        {
+            q: "Output yang benar dari kode PHP: $a = 5; $b = '10'; echo $a + $b;",
+            code: "<?php\n$a = 5;\n$b = \"10\";\necho $a + $b;\n?>",
+            opt: ["15", "510", "Error", "\"15\"", "10"],
+            ans: 0,
+            expl: "PHP itu 'pintar' (Loose Typing). String '10' otomatis diubah jadi angka 10 kalau ketemu tanda tambah (+).",
+            analog: "PHP itu kayak temen yang pengertian. Lo ngomong 'pinjem seratus' (String), dia tau maksud lo duit 100 ribu (Integer), bukan angka 1-0-0."
+        },
+        {
+            q: "Output PHP: $data = array('apple', 'banana', 'cherry'); echo $data[3];",
+            code: "<?php\n$data = array(\"apple\", \"banana\", \"cherry\");\necho $data[3];\n?>",
+            opt: ["cherry", "banana", "apple", "Array", "Notice: Undefined offset: 3"],
+            ans: 4,
+            expl: "Array mulai dari index 0. Jadi 0=apple, 1=banana, 2=cherry. Index 3 nggak ada.",
+            analog: "Lo absen nomor 30, tapi di kelas cuma ada 29 siswa. Guru bakal bingung (Error/Notice) manggil siapa."
+        },
+        {
+            q: "Output PHP Scope Variable...",
+            code: "<?php\n$angka = 10;\nfunction ubahAngka() {\n  $angka = 20;\n}\nubahAngka();\necho $angka;\n?>",
+            opt: ["10", "20", "Tidak ada output", "Error", "NULL"],
+            ans: 0,
+            expl: "Variabel `$angka` di dalam fungsi itu beda alam sama yang di luar (Local vs Global Scope). Yang diubah di dalam nggak ngaruh ke luar.",
+            analog: "Lo punya nama panggilan 'Boy' di rumah (Global). Di sekolah lo dipanggil 'Budi' (Local). Pas balik ke rumah, nama lo tetep 'Boy', nggak berubah jadi 'Budi'."
+        }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+
+    const elQuestion = document.getElementById('question');
+    const elCode = document.getElementById('code-area');
+    const elOptions = document.getElementById('options');
+    const elProgress = document.getElementById('progress');
+    const elCurrentQ = document.getElementById('current-q');
+    const elFeedback = document.getElementById('feedback');
+    const elFeedbackTitle = document.getElementById('feedback-title');
+    const elFeedbackText = document.getElementById('feedback-text');
+    const elFeedbackAnalogy = document.getElementById('feedback-analogy');
+    const elNextBtn = document.getElementById('next-btn');
+
+    function loadQuestion() {
+        const q = questions[currentIdx];
+        
+        // Update UI Text
+        elCurrentQ.innerText = currentIdx + 1;
+        elQuestion.innerText = q.q;
+        elProgress.style.width = `${((currentIdx) / questions.length) * 100}%`;
+
+        // Code block
+        if(q.code) {
+            elCode.innerHTML = `<div class="code-snippet"><pre>${q.code}</pre></div>`;
+            elCode.style.display = 'block';
+        } else {
+            elCode.style.display = 'none';
+        }
+
+        // Reset State
+        elOptions.innerHTML = '';
+        elFeedback.style.display = 'none';
+        elNextBtn.style.display = 'none';
+        
+        // Create Options
+        q.opt.forEach((optText, i) => {
+            const btn = document.createElement('div');
+            btn.className = 'option-btn';
+            btn.innerText = optText; // Tanpa A, B, C biar modern
+            btn.onclick = () => checkAnswer(i, btn);
+            elOptions.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex, btnElement) {
+        const q = questions[currentIdx];
+        const isCorrect = selectedIndex === q.ans;
+        const options = document.querySelectorAll('.option-btn');
+
+        // Disable all clicks
+        options.forEach(opt => opt.style.pointerEvents = 'none');
+
+        // Highlight selected
+        if(isCorrect) {
+            btnElement.classList.add('correct');
+            showFeedback(true, q);
+            score++;
+        } else {
+            btnElement.classList.add('wrong');
+            // Show real answer
+            options[q.ans].classList.add('correct');
+            showFeedback(false, q);
+        }
+
+        elNextBtn.style.display = 'inline-block';
+        
+        if(currentIdx === questions.length - 1) {
+            elNextBtn.innerText = "Lihat Nilai Akhir 🏁";
+        }
+    }
+
+    function showFeedback(isCorrect, qData) {
+        elFeedback.style.display = 'block';
+        elFeedback.className = `feedback-box ${isCorrect ? 'correct' : 'wrong'}`;
+        
+        elFeedbackTitle.innerHTML = isCorrect ? 
+            "✅ Mantap! Jawaban lo bener." : 
+            "❌ Yah salah... Jawaban yang bener itu yang hijau.";
+        
+        elFeedbackText.innerText = qData.expl;
+        elFeedbackAnalogy.innerText = qData.analog;
+    }
+
+    function nextQuestion() {
+        if(currentIdx < questions.length - 1) {
+            currentIdx++;
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        const finalScore = Math.round((score / questions.length) * 100);
+        document.getElementById('score').innerText = finalScore;
+
+        let msg = "";
+        if(finalScore === 100) msg = "Perfect! Lo pasti sepuh RPL ya? 🫡";
+        else if(finalScore >= 80) msg = "GG Geming! Udah jago nih. 🔥";
+        else if(finalScore >= 60) msg = "Not bad lah, tapi perlu grinding lagi. 📚";
+        else msg = "Waduh, login lagi ke materi ya. Jangan nyerah! 💪";
+        
+        document.getElementById('score-msg').innerText = msg;
+    }
+
+    // Start
+    loadQuestion();
+</script>
+
+</body>
+</html>
